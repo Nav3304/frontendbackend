@@ -25,4 +25,7 @@ public interface ProductCategoryRepository extends MongoRepository<ProductCatego
     List<ProductCategoryDocument> getAllBestSeller();
     @Query("{ 'name': { '$regex': ?0, '$options': 'i' } }")
     List<ProductCategoryDocument> searchByName(String name);
+
+    @Query("{'name':{'$in':?0}}")
+    List<ProductCategoryDocument> findByNameList(List<String> name);
 }

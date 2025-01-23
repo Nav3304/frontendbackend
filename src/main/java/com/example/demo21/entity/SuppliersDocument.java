@@ -10,8 +10,8 @@ import java.util.List;
 public class SuppliersDocument {
     private String id;
     private String name;
-    private String logoUrl;
-    private String category;
-    private List<String> subcategory;
-    private List<String> productCategory;
+    private String imageUrl;
+    private List<String> categories;
+    private List<String> subCategories;
+    private List<String> productCategories;
 }

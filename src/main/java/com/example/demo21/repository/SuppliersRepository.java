@@ -15,4 +15,7 @@ public interface SuppliersRepository extends MongoRepository<SuppliersDocument,S
     @Query("{ 'subCategory': { '$regex': ?0, '$options': 'i' } }")
     List<SuppliersDocument> searchByNameBySubCategory(String regex);
 
+    @Query("{ 'name': { '$regex': ?0, '$options': 'i' } }")
+    SuppliersDocument findByName(String name);
+
 }

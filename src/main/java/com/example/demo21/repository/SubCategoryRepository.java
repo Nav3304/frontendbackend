@@ -1,6 +1,7 @@
 package com.example.demo21.repository;
 
 import com.example.demo21.dto.ExtraDtoResponse;
+import com.example.demo21.entity.CategoryDocument;
 import com.example.demo21.entity.ProductCategoryDocument;
 import com.example.demo21.entity.SubCategoryDocument;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -17,4 +18,7 @@ public interface SubCategoryRepository extends MongoRepository<SubCategoryDocume
     SubCategoryDocument findByName(String name);
     @Query("{ 'name': { '$regex': ?0,'$options': 'i'} }")
     List<SubCategoryDocument> searchByName(String name);
+
+    @Query("{'name':{'$in':?0}}")
+    List<SubCategoryDocument> findByNameList(List<String> name);
 }
