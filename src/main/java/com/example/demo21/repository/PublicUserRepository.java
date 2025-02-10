@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface PublicUserRepository extends MongoRepository<PublicUserDocument,String> {
     @Query("{'email': ?0}")
     PublicUserDocument findByEmail(String email);
+    @Query("{'resetToken': ?0}")
+    PublicUserDocument findByResetToken(String resetToken);
 }

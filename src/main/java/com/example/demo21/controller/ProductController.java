@@ -85,8 +85,6 @@ public class ProductController {
                         .append(" ");
             }
         }
-
-        // Trim the trailing space and return the result
         return capitalizedStr.toString().trim();
     }
 

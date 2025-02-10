@@ -1,11 +1,16 @@
 package com.example.demo21.service.Implementation;
 
+import com.example.demo21.dto.LoginRequest;
 import com.example.demo21.dto.SignUpRequest;
 import com.example.demo21.entity.PublicUserDocument;
 import com.example.demo21.repository.PublicUserRepository;
 import com.example.demo21.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,6 +26,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +34,14 @@ public class AuthServiceImpl implements AuthService, OAuth2UserService<OAuth2Use
 
     @Autowired
     private PublicUserRepository publicUserRepository;
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Autowired
+    private ContactServiceImpl contactService;
+    @Value("${reset_url}")
+    private String passwordResetUrl;
 
     private final WebClient webClient = WebClient.builder().build();
 
@@ -88,6 +102,41 @@ public class AuthServiceImpl implements AuthService, OAuth2UserService<OAuth2Use
         if (user.getPassword() != null)
             user.setPassword(new BCryptPasswordEncoder().encode(user.getPassword()));
         return publicUserRepository.save(user);
+    }
+
+//    @Override
+//    public String forgetPassword (LoginRequest loginRequest) {
+//        PublicUserDocument user = publicUserRepository.findByEmail(loginRequest.getEmail());
+//        if (user==null) {
+//            return "User not found";
+//        }
+//
+//        user.setPassword(new BCryptPasswordEncoder().encode(loginRequest.getPassword()));
+//        publicUserRepository.save(user);
+//
+//        return "Password updated successfully.";
+//    }
+    @Override
+    public String forgetPassword(LoginRequest loginRequest) {
+        PublicUserDocument user = publicUserRepository.findByEmail(loginRequest.getEmail());
+        if (user != null) {
+            String resetToken = UUID.randomUUID().toString();
+            user.setResetToken(resetToken);
+            publicUserRepository.save(user);
+
+            String resetLink =passwordResetUrl + "/reset-password?token=" + resetToken;
+            contactService.sendEmail(loginRequest.getEmail(), "Reset Password", resetLink);
+        }
+        return "Password updated successfully.";
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        PublicUserDocument user = publicUserRepository.findByResetToken(token);
+        if (user != null) {
+            user.setPassword(new BCryptPasswordEncoder().encode(newPassword)); // In a real application, you should hash the password
+            user.setResetToken(null);
+            publicUserRepository.save(user);
+        }
     }
 
 

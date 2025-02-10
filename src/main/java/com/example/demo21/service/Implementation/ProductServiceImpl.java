@@ -232,12 +232,14 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public SubCategoryResponse getSubCategoryByName (String name) {
         SubCategoryDocument entity = subCategoryRepository.findByName(name);
+        Map<String,String> mp=categoryData(true);
         // If present, map the entity to the response and return
         if (entity!=null) {
             SubCategoryResponse response = new SubCategoryResponse();
             response.setId(entity.getId());
             response.setName(entity.getName());
             response.setDescription(entity.getDescription());
+            response.setCategoryName(mp.get(entity.getCategoryId()));
             response.setImages(entity.getImages());
             response.setTags(entity.getTags());
             response.setFeatured(entity.isFeatured());

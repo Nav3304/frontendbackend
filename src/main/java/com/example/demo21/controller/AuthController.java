@@ -83,4 +83,14 @@ public class AuthController {
         String response=authService.signupUser(signUpRequest);
         return ResponseEntity.ok().body(response);
     }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody LoginRequest loginRequest){
+        String response=authService.forgetPassword(loginRequest);
+        return ResponseEntity.ok().body(response);
+    }
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
+        authService.resetPassword(token, newPassword);
+        return ResponseEntity.ok("Password reset successfully.");
+    }
 }

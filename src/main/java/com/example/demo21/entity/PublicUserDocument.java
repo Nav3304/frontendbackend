@@ -19,6 +19,7 @@ public class PublicUserDocument implements UserDetails {
     private String address;
     private String nearestStore;
     private String signUpMethod;
+    private String resetToken;
 
     public PublicUserDocument (String name,String email) {
         this.name=name;
