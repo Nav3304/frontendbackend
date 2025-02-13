@@ -121,6 +121,12 @@ public class SuppliersServiceImpl implements SuppliersService {
         return response;
     }
 
+    @Override
+    public List<SuppliersResponse> getAll () {
+        List<SuppliersDocument> suppliersDocumentList=suppliersRepository.findAll();
+        return suppliersDocumentList.stream().map(supplier -> new SuppliersResponse(supplier.getId(),supplier.getName(),supplier.getCategories(),supplier.getSubCategories(),supplier.getProductCategories()
+        ,supplier.getImageUrl())).collect(Collectors.toList());
+    }
 
 
     public Map<String,String> subCategoryData(List<SubCategoryDocument> categoryDocumentsList){

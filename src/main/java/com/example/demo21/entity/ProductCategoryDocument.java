@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Document(collection = "ProductCategory")
@@ -17,4 +18,6 @@ public class ProductCategoryDocument {
     private List<String> tags;
     private boolean featured;
     private boolean bestSeller;
+    private Integer productPosition;
+    private Map<String,Integer> brandAndPosition;
 }

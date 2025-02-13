@@ -33,6 +33,12 @@ public class SuppliersController {
         return  ResponseEntity.ok().body(response);
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<List<SuppliersResponse>> getAllSuppliers(){
+        List<SuppliersResponse> suppliersResponses=suppliersService.getAll();
+        return ResponseEntity.ok().body(suppliersResponses);
+    }
+
     private String slugToOriginalName(String slug) {
         if (slug == null || slug.isEmpty()) {
             return slug;

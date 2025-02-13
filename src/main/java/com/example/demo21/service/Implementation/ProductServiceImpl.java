@@ -139,6 +139,8 @@ public class ProductServiceImpl implements ProductService {
             response.setSubCategoryName(mp2.get(document.getSubCategoryId()));
             response.setFeatured(document.isFeatured());
             response.setBestSeller(document.isBestSeller());
+            response.setProductPosition(document.getProductPosition());
+            response.setBrandAndPosition(document.getBrandAndPosition());
             return response;
         }
         else return null;

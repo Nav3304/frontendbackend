@@ -3,6 +3,7 @@ package com.example.demo21.dto;
 import lombok.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -18,6 +19,8 @@ public class ProductResponse {
     private List<String> tags;
     private boolean featured;
     private boolean bestSeller;
+    private Integer productPosition;
+    private Map<String,Integer> brandAndPosition;
 
     public ProductResponse (String name, List<String> imageUrl, String categoryName, String subCategoryName) {
         this.name=name;
