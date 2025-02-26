@@ -12,4 +12,6 @@ import java.util.List;
 public interface CategoryRepository extends MongoRepository<CategoryDocument,String> {
     @Query("{'name':{'$in':?0}}")
     List<CategoryDocument> findByNameList(List<String> name);
+    @Query("{'_id': {'$in': ?0}}")
+    List<CategoryDocument> findByIds(List<String> ids);
 }

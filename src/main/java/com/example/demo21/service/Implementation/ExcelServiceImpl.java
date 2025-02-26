@@ -68,7 +68,7 @@ public class ExcelServiceImpl {
         Map<String, Object> options = ObjectUtils.asMap(
                 "type", "upload", // Fetch uploaded resources
                 "asset_folder", folderName + "/", // Specify the folder
-                "max_results", 8 // Maximum number of results to return
+                "max_results", 500 // Maximum number of results to return
         );
         Object cld = cloudinary.api().resources(ObjectUtils.asMap("max_results", 500)).get("resources");
         // Fetch resources (images) in the folder

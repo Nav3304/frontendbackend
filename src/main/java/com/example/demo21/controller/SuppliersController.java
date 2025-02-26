@@ -27,9 +27,9 @@ public class SuppliersController {
         return ResponseEntity.ok().body(suppliersService.getSuppliersBySubCategory(query));
     }
     @GetMapping("/name")
-    public ResponseEntity<Map<String, List<ProductResponse>>> getCategories(@RequestParam String names){
+    public ResponseEntity<SuppliersResponse> getCategories(@RequestParam String names){
         names=slugToOriginalName(names);
-        Map<String, List<ProductResponse>> response =suppliersService.getSuppliersByName(names);
+        SuppliersResponse response =suppliersService.getSuppliersByName(names);
         return  ResponseEntity.ok().body(response);
     }
 
@@ -46,6 +46,8 @@ public class SuppliersController {
         // Replace hyphens with spaces and convert the entire string to uppercase
         return slug.replace("-", " ").toUpperCase();
     }
+
+
 
 
 }

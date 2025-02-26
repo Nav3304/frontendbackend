@@ -1,11 +1,9 @@
 package com.example.demo21.service.Implementation;
 
 import com.example.demo21.dto.ProductResponse;
+import com.example.demo21.dto.SupplierSubCategoryResponse;
 import com.example.demo21.dto.SuppliersResponse;
-import com.example.demo21.entity.CategoryDocument;
-import com.example.demo21.entity.ProductCategoryDocument;
-import com.example.demo21.entity.SubCategoryDocument;
-import com.example.demo21.entity.SuppliersDocument;
+import com.example.demo21.entity.*;
 import com.example.demo21.repository.CategoryRepository;
 import com.example.demo21.repository.ProductCategoryRepository;
 import com.example.demo21.repository.SubCategoryRepository;
@@ -68,71 +66,102 @@ public class SuppliersServiceImpl implements SuppliersService {
     }
 
     @Override
-    public Map<String, List<ProductResponse>> getSuppliersByName(String name) {
-        // Fetch the supplier document
+    public SuppliersResponse getSuppliersByName(String name) {
         SuppliersDocument suppliersDocument = suppliersRepository.findByName(name);
-        List<String> categoryIds = suppliersDocument.getCategories();
-        List<String> subCategoryIds = suppliersDocument.getSubCategories();
-        List<String> productCategoryNames = suppliersDocument.getProductCategories();
-
-        // Fetch the category, subcategory, and product category documents
-        List<CategoryDocument> categoryDocumentList = categoryRepository.findByNameList(categoryIds);
-        List<SubCategoryDocument> subCategoryDocumentList = subCategoryRepository.findByNameList(subCategoryIds);
-        List<ProductCategoryDocument> productCategoryDocumentList = productCategoryRepository.findByNameList(productCategoryNames);
-
-        // Map category IDs to category names for quick lookup
-        Map<String, String> categoryIdToNameMap = categoryDocumentList.stream()
-                .collect(Collectors.toMap(CategoryDocument::getId, CategoryDocument::getName));
-
-        // Map subcategory IDs to subcategory names for quick lookup
-        Map<String, String> subCategoryIdToNameMap = subCategoryDocumentList.stream()
-                .collect(Collectors.toMap(SubCategoryDocument::getId, SubCategoryDocument::getName));
-
-        // Map product category IDs to their names for quick lookup
-        Map<String, String> productCategoryIdToNameMap = productCategoryDocumentList.stream()
-                .collect(Collectors.toMap(ProductCategoryDocument::getId, ProductCategoryDocument::getName));
-
-        // Group product categories by subcategory ID
-        Map<String, List<ProductCategoryDocument>> productCategoryMap = productCategoryDocumentList.stream()
-                .collect(Collectors.groupingBy(ProductCategoryDocument::getSubCategoryId));
-
-        // Map the subcategory name to its associated product categories
-        Map<String, List<ProductResponse>> response = new HashMap<>();
-        for (SubCategoryDocument subCategory : subCategoryDocumentList) {
-            String subCategoryName = subCategory.getName(); // Use subcategory name as the key
-            String subCategoryId = subCategory.getId();
-
-            // Get product categories for the subcategory
-            List<ProductCategoryDocument> productCategories = productCategoryMap.getOrDefault(subCategoryId, new ArrayList<>());
-
-            // Map product categories to ProductResponse
-            List<ProductResponse> productResponses = productCategories.stream()
-                    .map(product -> new ProductResponse(
-                            product.getName(), // Product name
-                            product.getImageUrl(), // Product image URLs
-                            categoryIdToNameMap.get(product.getCategoryId()), // Fetch category name from the category map
-                            subCategoryIdToNameMap.get(product.getSubCategoryId()) // Fetch subcategory name from the subcategory map
-                    ))
-                    .collect(Collectors.toList());
-
-            response.put(subCategoryName, productResponses);
+        if (suppliersDocument == null) {
+            throw new RuntimeException("Supplier not found with name: " + name);
         }
 
-        return response;
+        Map<String, Integer> subCategoryMap = suppliersDocument.getSubCategoryAndPosition();
+        if (subCategoryMap == null || subCategoryMap.isEmpty()) {
+            return new SuppliersResponse(
+                    suppliersDocument.getId(),
+                    suppliersDocument.getName(),
+                    suppliersDocument.getImageUrl(),
+                    suppliersDocument.getDescription(),
+                    new HashMap<>() // Empty subCategory map
+            );
+        }
+
+        // Get the list of sub-category names
+        List<String> subCategoryList = new ArrayList<>(subCategoryMap.keySet());
+
+        // Fetch product categories mapped by sub-category ID
+        Map<String, ProductCategoryDocument> productCategoryMap = productCategoryData(subCategoryList);
+
+        // Fetch sub-category names mapped by sub-category ID
+        Map<String, String> subCatMap = subCategoryData(subCategoryList);
+
+        Map<String, SupplierSubCategoryResponse> suppSubCat = new HashMap<>();
+
+        for (Map.Entry<String, ProductCategoryDocument> entry : productCategoryMap.entrySet()) {
+            ProductCategoryDocument prod = entry.getValue();
+            String subCatId = prod.getSubCategoryId();
+            String subCatName = subCatMap.get(subCatId);
+
+            if (subCatName != null) {
+                SupplierSubCategoryResponse tempSupSubCat = suppSubCat.computeIfAbsent(
+                        subCatName,
+                        k -> new SupplierSubCategoryResponse()
+                );
+
+                if (tempSupSubCat.getPosition() == null) {
+                    Integer position = subCategoryMap.get(subCatId);
+                    tempSupSubCat.setPosition(position);
+                }
+
+                // Convert each product into a ProductCategory object with name and image URL
+                for (int i = 0; i < prod.getImageUrl().size(); i++) {
+                    String imageUrl = prod.getImageUrl().get(i);
+                    String productName = prod.getName(); // Assuming there's a corresponding product name list
+
+                    ProductResponse productCategory = new ProductResponse(productName, imageUrl);
+                    tempSupSubCat.getProductCategory().add(productCategory);
+                }
+            }
+        }
+
+        return new SuppliersResponse(
+                suppliersDocument.getId(),
+                suppliersDocument.getName(),
+                suppliersDocument.getImageUrl(),
+                suppliersDocument.getDescription(),
+                suppSubCat
+        );
     }
+
+
+
 
     @Override
     public List<SuppliersResponse> getAll () {
-        List<SuppliersDocument> suppliersDocumentList=suppliersRepository.findAll();
-        return suppliersDocumentList.stream().map(supplier -> new SuppliersResponse(supplier.getId(),supplier.getName(),supplier.getCategories(),supplier.getSubCategories(),supplier.getProductCategories()
-        ,supplier.getImageUrl())).collect(Collectors.toList());
+        List<SuppliersDocument> suppliersDocumentList = suppliersRepository.findAll();
+        return suppliersDocumentList.stream().map(supplier -> new SuppliersResponse(supplier.getId(), supplier.getName(), supplier.getImageUrl())).collect(Collectors.toList());
     }
 
 
-    public Map<String,String> subCategoryData(List<SubCategoryDocument> categoryDocumentsList){
-        Map<String,String> mpList=new HashMap<>();
-        for(SubCategoryDocument cat: categoryDocumentsList){
-            mpList.put(cat.getId(),cat.getName());
+    public Map<String, String> categoryData (List<String> categoryList) {
+        List<CategoryDocument> categoryDocumentsList = categoryRepository.findByIds(categoryList);
+        Map<String, String> mpList = new HashMap<>();
+        for (CategoryDocument cat : categoryDocumentsList) {
+            mpList.put(cat.getId(), cat.getName());
+        }
+        return mpList;
+    }
+
+    public Map<String, String> subCategoryData (List<String> suCategoryList) {
+        List<SubCategoryDocument> categoryDocumentsList = subCategoryRepository.findByIds(suCategoryList);
+        Map<String, String> mpList = new HashMap<>();
+        for (SubCategoryDocument cat : categoryDocumentsList) {
+            mpList.put(cat.getId(), cat.getName());
+        }
+        return mpList;
+    }
+    public Map<String, ProductCategoryDocument> productCategoryData (List<String> ids) {
+        List<ProductCategoryDocument> categoryDocumentsList = productCategoryRepository.findBySubCategoryId(ids);
+        Map<String, ProductCategoryDocument> mpList = new HashMap<>();
+        for (ProductCategoryDocument cat : categoryDocumentsList) {
+            mpList.put(cat.getId(), cat);
         }
         return mpList;
     }

@@ -2,6 +2,7 @@ package com.example.demo21.dto;
 
 import lombok.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,12 @@ public class ProductResponse {
         this.categoryName=categoryName;
         this.subCategoryName=subCategoryName;
     }
+
+    public ProductResponse (String productName, String imageUrl) {
+        this.name=productName;
+        this.imageUrl= Collections.singletonList(imageUrl);
+    }
+
     @Override
     public String toString() {
         return "ProductResponse{" +

@@ -28,4 +28,7 @@ public interface ProductCategoryRepository extends MongoRepository<ProductCatego
 
     @Query("{'name':{'$in':?0}}")
     List<ProductCategoryDocument> findByNameList(List<String> name);
+
+    @Query("{'subCategoryId': {'$in': ?0}}")
+    List<ProductCategoryDocument> findBySubCategoryId(List<String> ids);
 }

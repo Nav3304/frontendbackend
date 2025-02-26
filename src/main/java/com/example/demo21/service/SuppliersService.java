@@ -9,6 +9,6 @@ import java.util.Map;
 public interface SuppliersService {
    public List<SuppliersResponse> getSuppliersByProductCategory(String query);
    public List<SuppliersResponse> getSuppliersBySubCategory(String query);
-   public Map<String, List<ProductResponse>> getSuppliersByName(String name);
+   public SuppliersResponse getSuppliersByName(String name);
    public List<SuppliersResponse> getAll();
 }
