@@ -246,6 +246,7 @@ public class ProductServiceImpl implements ProductService {
             response.setTags(entity.getTags());
             response.setFeatured(entity.isFeatured());
             response.setBestSeller(entity.isBestSeller());
+            response.setProductCategoryAndPosition(entity.getProductCategoryAndPosition());
             return response;
         }
         return null;
