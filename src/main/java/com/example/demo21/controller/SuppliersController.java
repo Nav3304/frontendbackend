@@ -43,8 +43,8 @@ public class SuppliersController {
         if (slug == null || slug.isEmpty()) {
             return slug;
         }
-        // Replace hyphens with spaces and convert the entire string to uppercase
-        return slug.replace("-", " ").toUpperCase();
+        // Replace hyphens with spaces, underscores with slashes, and convert the string to uppercase
+        return slug.replace("-", " ").replace("%2B","-").replace("_", "/").toUpperCase();
     }
 
 

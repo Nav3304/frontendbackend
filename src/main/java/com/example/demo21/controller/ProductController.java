@@ -65,7 +65,7 @@ public class ProductController {
 
     // Helper method to convert slug to original name
     private String slugToOriginalName(String slug) {
-        slug = slug.replace("and", "&");
+        //slug = slug.replace("and", "and");
 
         return capitalizeFirstLetterOfEachWord(slug.replace("-", " "));
     }
@@ -79,6 +79,10 @@ public class ProductController {
         StringBuilder capitalizedStr = new StringBuilder();
 
         for (String word : words) {
+            if(word.equals("and")) {
+                capitalizedStr.append(word).append(" ");
+                continue;
+            }
             if (!word.isEmpty()) {
                 capitalizedStr.append(word.substring(0, 1).toUpperCase())
                         .append(word.substring(1).toLowerCase()) // Keep the rest of the word lowercase
