@@ -7,6 +7,8 @@ import com.example.demo21.entity.*;
 import com.example.demo21.repository.*;
 import com.example.demo21.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -30,6 +32,7 @@ public class ProductServiceImpl implements ProductService {
     private ContactServiceImpl contactService;
 
     @Override
+    @Cacheable(value = "categories")
     public List<ProductResponse> getAllCategory () {
         List<CategoryDocument> categoryDocument=categoryRepository.findAll();
         List<ProductResponse> productResponseList=new ArrayList<>();
@@ -50,6 +53,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "subcategories")
     public List<SubCategoryResponse> getAllSubCategory () {
         List<SubCategoryDocument> subCategoryDocumentList=subCategoryRepository.findAll();
         List<SubCategoryResponse> productResponseList=new ArrayList<>();
@@ -70,6 +74,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "subcategories", key = "#id")
     public List<SubCategoryDocument> getSubCategoryByCategoryId (String id) {
 
         List<SubCategoryDocument> subCategoryDocument=subCategoryRepository.findByCategoryId(id);
@@ -85,6 +90,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "products", key = "#categoryId + '_' + #subCategoryId")
     public List<ProductResponse> getProductCategoryByCatIdAndSubCatId(String categoryId, String subCategoryId) {
         List<ProductCategoryDocument> productCategoryDocumentList = new ArrayList<>();
 
@@ -124,6 +130,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
+    @Cacheable(value = "products", key = "#name")
     public ProductResponse getProductCategoryByName (String name) {
         ProductCategoryDocument document = productCategoryRepository.findByName(name);
         if(document!=null) {
@@ -147,6 +154,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "products", key = "#subCategoryName")
     public List<ProductResponse> getProductCategoriesBySubCategoryName (String subCategoryName) {
         SubCategoryDocument subCategory = subCategoryRepository.findByName(subCategoryName);
         if (subCategory == null) {
@@ -174,6 +182,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "products")
     public List<ProductResponse> getAllProductCategory () {
         List<ProductCategoryDocument> productCategoryDocumentList=productCategoryRepository.findAll();
         List<ProductResponse> productCategoryResponseList=new ArrayList<>();
@@ -196,6 +205,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "products", key = "#categoryName")
     public List<ProductResponse> getProductCategoryByCategoryName(String categoryName) {
         Map<String, String> categoryList = categoryData(false);
         Map<String, String> categoryList2 = categoryData(true);
@@ -232,6 +242,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "subcategories", key = "#name")
     public SubCategoryResponse getSubCategoryByName (String name) {
         SubCategoryDocument entity = subCategoryRepository.findByName(name);
         Map<String,String> mp=categoryData(true);
@@ -253,6 +264,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CacheEvict(value = {"products", "categories", "subcategories"}, allEntries = true)
     public String saveEnquiry (ProductEnquiryRequest enquiryRequest) {
         ProductEnquiryDocument enquiry = new ProductEnquiryDocument();
         enquiry.setName(enquiryRequest.getName());
@@ -275,6 +287,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "products", key = "'bestsellers'")
     public List<ProductResponse> getAllBestSellingProduct () {
         List<ProductCategoryDocument> productCategoryDocumentList=productCategoryRepository.getAllBestSeller();
         List<ProductResponse> productCategoryResponseList=new ArrayList<>();
@@ -297,6 +310,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "shopByCategory")
     public Map<String, Map<String, String>> getShopByCategory() {
         List<ProductCategoryDocument> productCategoryDocumentList = productCategoryRepository.findAll();
         Map<String, String> mp1 = categoryData(true);
@@ -316,6 +330,7 @@ public class ProductServiceImpl implements ProductService {
         return result;
     }
 
+    @Cacheable(value = "categoryData", key = "#value")
     public Map<String,String> categoryData(boolean value){
         List<CategoryDocument> categoryDocumentsList=categoryRepository.findAll();
         Map<String,String> mpList=new HashMap<>();
@@ -331,6 +346,7 @@ public class ProductServiceImpl implements ProductService {
         }
         return mpList;
     }
+    @Cacheable(value = "subcategoryData")
     public Map<String,String> subCategoryData(){
         List<SubCategoryDocument> categoryDocumentsList=subCategoryRepository.findAll();
         Map<String,String> mpList=new HashMap<>();
