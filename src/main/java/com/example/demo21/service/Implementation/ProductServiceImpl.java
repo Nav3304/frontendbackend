@@ -6,12 +6,16 @@ import com.example.demo21.dto.SubCategoryResponse;
 import com.example.demo21.entity.*;
 import com.example.demo21.repository.*;
 import com.example.demo21.service.ProductService;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -30,47 +34,85 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private ContactServiceImpl contactService;
+    
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+    
+    // Cache maps at startup for faster access
+    private Map<String, String> categoryIdToNameMap;
+    private Map<String, String> categoryNameToIdMap;
+    private Map<String, String> subCategoryIdToNameMap;
+    
+    @PostConstruct
+    public void initCaches() {
+        // Initialize cached maps
+        categoryIdToNameMap = categoryData(true);
+        categoryNameToIdMap = categoryData(false);
+        subCategoryIdToNameMap = subCategoryData();
+    }
 
     @Override
     @Cacheable(value = "categories")
-    public List<ProductResponse> getAllCategory () {
-        List<CategoryDocument> categoryDocument=categoryRepository.findAll();
-        List<ProductResponse> productResponseList=new ArrayList<>();
-        for(CategoryDocument cd: categoryDocument){
-            ProductResponse pr=new ProductResponse();
-            pr.setId(cd.getId());
-            pr.setName(cd.getName());
-            pr.setDescription(cd.getDescription());
-            pr.setImageUrl(cd.getImages());
-//            pr.setProperties(cd.getProperties());
-            pr.setTags(cd.getTags());
-            pr.setFeatured(cd.isFeatured());
-            pr.setBestSeller(cd.isBestSeller());
-
-            productResponseList.add(pr);
-        }
-        return productResponseList;
+    public List<ProductResponse> getAllCategory() {
+        List<CategoryDocument> categoryDocuments = categoryRepository.findAll();
+        
+        // Use stream for better performance
+        return categoryDocuments.stream()
+                .map(this::mapCategoryToProductResponse)
+                .collect(Collectors.toList());
+    }
+    
+    // Helper method to map CategoryDocument to ProductResponse
+    private ProductResponse mapCategoryToProductResponse(CategoryDocument cd) {
+        ProductResponse pr = new ProductResponse();
+        pr.setId(cd.getId());
+        pr.setName(cd.getName());
+        pr.setDescription(cd.getDescription());
+        pr.setImageUrl(cd.getImages());
+        pr.setTags(cd.getTags());
+        pr.setFeatured(cd.isFeatured());
+        pr.setBestSeller(cd.isBestSeller());
+        return pr;
     }
 
     @Override
     @Cacheable(value = "subcategories")
-    public List<SubCategoryResponse> getAllSubCategory () {
-        List<SubCategoryDocument> subCategoryDocumentList=subCategoryRepository.findAll();
-        List<SubCategoryResponse> productResponseList=new ArrayList<>();
-        Map<String, String> mp = categoryData(true);
-        for(SubCategoryDocument sub: subCategoryDocumentList){
-            SubCategoryResponse subCat=new SubCategoryResponse();
-            subCat.setId(sub.getId());
-            subCat.setName(sub.getName());
-            subCat.setDescription(sub.getDescription());
-            subCat.setCategoryName(mp.get(sub.getCategoryId()));
-            subCat.setImages(sub.getImages());
-            subCat.setTags(sub.getTags());
-            subCat.setFeatured(sub.isFeatured());
-            subCat.setBestSeller(sub.isBestSeller());
-            productResponseList.add(subCat);
+    public List<SubCategoryResponse> getAllSubCategory() {
+        List<SubCategoryDocument> subCategoryDocumentList = subCategoryRepository.findAll();
+        
+        // Use stream for better performance and reuse existing map
+        return subCategoryDocumentList.stream()
+                .map(sub -> {
+                    SubCategoryResponse subCat = new SubCategoryResponse();
+                    subCat.setId(sub.getId());
+                    subCat.setName(sub.getName());
+                    subCat.setDescription(sub.getDescription());
+                    subCat.setCategoryName(getCategoryName(sub.getCategoryId()));
+                    subCat.setImages(sub.getImages());
+                    subCat.setTags(sub.getTags());
+                    subCat.setFeatured(sub.isFeatured());
+                    subCat.setBestSeller(sub.isBestSeller());
+                    return subCat;
+                })
+                .collect(Collectors.toList());
+    }
+
+    // Helper method to get category name from cached map
+    private String getCategoryName(String categoryId) {
+        if (categoryIdToNameMap == null) {
+            // Fallback if cache not initialized
+            categoryIdToNameMap = categoryData(true);
         }
-        return productResponseList;
+        return categoryIdToNameMap.get(categoryId);
+    }
+    
+    // Helper method to get subcategory name from cached map
+    private String getSubCategoryName(String subCategoryId) {
+        if (subCategoryIdToNameMap == null) {
+            // Fallback if cache not initialized
+            subCategoryIdToNameMap = subCategoryData();
+        }
+        return subCategoryIdToNameMap.get(subCategoryId);
     }
 
     @Override
@@ -183,25 +225,25 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Cacheable(value = "products")
-    public List<ProductResponse> getAllProductCategory () {
-        List<ProductCategoryDocument> productCategoryDocumentList=productCategoryRepository.findAll();
-        List<ProductResponse> productCategoryResponseList=new ArrayList<>();
-        Map<String,String>mp1=categoryData(true);
-        Map<String,String>mp2=subCategoryData();
-        for(ProductCategoryDocument document: productCategoryDocumentList){
-            ProductResponse proRes=new ProductResponse();
-            proRes.setId(document.getId());
-            proRes.setName(document.getName());
-            proRes.setDescription(document.getDescription());
-            proRes.setImageUrl(document.getImageUrl());
-            proRes.setTags(document.getTags());
-            proRes.setCategoryName(mp1.get(document.getCategoryId()));
-            proRes.setSubCategoryName(mp2.get(document.getSubCategoryId()));
-            proRes.setFeatured(document.isFeatured());
-            proRes.setBestSeller(document.isBestSeller());
-            productCategoryResponseList.add(proRes);
-        }
-        return productCategoryResponseList;
+    public List<ProductResponse> getAllProductCategory() {
+        List<ProductCategoryDocument> productCategoryDocumentList = productCategoryRepository.findAll();
+        
+        // Use stream and reuse cached maps
+        return productCategoryDocumentList.stream()
+                .map(document -> {
+                    ProductResponse proRes = new ProductResponse();
+                    proRes.setId(document.getId());
+                    proRes.setName(document.getName());
+                    proRes.setDescription(document.getDescription());
+                    proRes.setImageUrl(document.getImageUrl());
+                    proRes.setTags(document.getTags());
+                    proRes.setCategoryName(getCategoryName(document.getCategoryId()));
+                    proRes.setSubCategoryName(getSubCategoryName(document.getSubCategoryId()));
+                    proRes.setFeatured(document.isFeatured());
+                    proRes.setBestSeller(document.isBestSeller());
+                    return proRes;
+                })
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -332,27 +374,49 @@ public class ProductServiceImpl implements ProductService {
 
     @Cacheable(value = "categoryData", key = "#value")
     public Map<String,String> categoryData(boolean value){
-        List<CategoryDocument> categoryDocumentsList=categoryRepository.findAll();
-        Map<String,String> mpList=new HashMap<>();
+        // Check if the data is already cached in Redis for better performance
+        String redisKey = "categoryData:" + value;
+        Map<String,String> mpList = (Map<String,String>) redisTemplate.opsForValue().get(redisKey);
+        
+        if (mpList != null) {
+            return mpList;
+        }
+        
+        List<CategoryDocument> categoryDocumentsList = categoryRepository.findAll();
+        mpList = new HashMap<>();
+        
         if(value) {
-            for (CategoryDocument cat : categoryDocumentsList) {
-                mpList.put(cat.getId(), cat.getName());
-            }
+            mpList = categoryDocumentsList.stream()
+                    .collect(Collectors.toMap(CategoryDocument::getId, CategoryDocument::getName));
         }
         else {
-            for (CategoryDocument cat : categoryDocumentsList) {
-                mpList.put(cat.getName(), cat.getId());
-            }
+            mpList = categoryDocumentsList.stream()
+                    .collect(Collectors.toMap(CategoryDocument::getName, CategoryDocument::getId));
         }
+        
+        // Cache the result in Redis for faster subsequent access
+        redisTemplate.opsForValue().set(redisKey, mpList, 48, TimeUnit.HOURS);
         return mpList;
     }
+    
     @Cacheable(value = "subcategoryData")
     public Map<String,String> subCategoryData(){
-        List<SubCategoryDocument> categoryDocumentsList=subCategoryRepository.findAll();
-        Map<String,String> mpList=new HashMap<>();
-        for(SubCategoryDocument cat: categoryDocumentsList){
-            mpList.put(cat.getId(),cat.getName());
+        // Check if the data is already cached in Redis for better performance
+        String redisKey = "subcategoryData";
+        Map<String,String> mpList = (Map<String,String>) redisTemplate.opsForValue().get(redisKey);
+        
+        if (mpList != null) {
+            return mpList;
         }
+        
+        List<SubCategoryDocument> categoryDocumentsList = subCategoryRepository.findAll();
+        
+        // Use Java 8 streams for better performance
+        mpList = categoryDocumentsList.stream()
+                .collect(Collectors.toMap(SubCategoryDocument::getId, SubCategoryDocument::getName));
+        
+        // Cache the result in Redis for faster subsequent access
+        redisTemplate.opsForValue().set(redisKey, mpList, 48, TimeUnit.HOURS);
         return mpList;
     }
 }

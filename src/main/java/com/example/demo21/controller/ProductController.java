@@ -7,33 +7,56 @@ import com.example.demo21.dto.ProductResponse;
 import com.example.demo21.dto.SubCategoryResponse;
 import com.example.demo21.entity.SubCategoryDocument;
 import com.example.demo21.service.ProductService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/product")
 @CrossOrigin(origins = "*")
 public class ProductController {
 
+    private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
+
     @Autowired
     private ProductService productService;
 
-    @GetMapping("/category")
+    @GetMapping(value = "/category", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<ProductResponse>> getAllCategory(){
-        List<ProductResponse> pr=productService.getAllCategory();
-        return ResponseEntity.ok().body(pr);
+        try {
+            long startTime = System.nanoTime();
+            List<ProductResponse> pr = productService.getAllCategory();
+            long endTime = System.nanoTime();
+            logger.info("getAllCategory API took {} ms", TimeUnit.NANOSECONDS.toMillis(endTime - startTime));
+            return ResponseEntity.ok().body(pr);
+        } catch (Exception e) {
+            logger.error("Error in getAllCategory: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+        }
     }
 
-    @GetMapping("/subcategory")
+    @GetMapping(value = "/subcategory", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<SubCategoryResponse>> getAllSubCategory(){
-        List<SubCategoryResponse> pr=productService.getAllSubCategory();
-        return ResponseEntity.ok().body(pr);
+        try {
+            long startTime = System.nanoTime();
+            List<SubCategoryResponse> pr = productService.getAllSubCategory();
+            long endTime = System.nanoTime();
+            logger.info("getAllSubCategory API took {} ms", TimeUnit.NANOSECONDS.toMillis(endTime - startTime));
+            return ResponseEntity.ok().body(pr);
+        } catch (Exception e) {
+            logger.error("Error in getAllSubCategory: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+        }
     }
 
     @GetMapping("/subcategory/category/{id}")
@@ -102,10 +125,18 @@ public class ProductController {
         return ResponseEntity.ok(productCategories);
     }
 
-    @GetMapping("/product-category/all")
+    @GetMapping(value = "/product-category/all", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<ProductResponse>> fetchAllProductCategory(){
-        List<ProductResponse> responses =productService.getAllProductCategory();
-        return ResponseEntity.ok().body(responses);
+        try {
+            long startTime = System.nanoTime();
+            List<ProductResponse> responses = productService.getAllProductCategory();
+            long endTime = System.nanoTime();
+            logger.info("fetchAllProductCategory API took {} ms", TimeUnit.NANOSECONDS.toMillis(endTime - startTime));
+            return ResponseEntity.ok().body(responses);
+        } catch (Exception e) {
+            logger.error("Error in fetchAllProductCategory: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+        }
     }
     @GetMapping("/product-category/category/{categoryName}")
     public ResponseEntity<List<ProductResponse>> getProductsByCategoryName(@PathVariable String categoryName) {
