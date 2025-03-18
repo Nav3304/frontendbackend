@@ -81,7 +81,7 @@ public class RedisConfig {
         RedisSerializer<String> stringSerializer = new StringRedisSerializer();
 
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(1))
+                .entryTtl(Duration.ofDays(2))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(stringSerializer))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer));
 
