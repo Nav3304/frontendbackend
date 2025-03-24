@@ -15,11 +15,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/product")
@@ -86,35 +84,49 @@ public class ProductController {
         return ResponseEntity.ok().body(responses);
     }
 
-    // Helper method to convert slug to original name
     private String slugToOriginalName(String slug) {
-        //slug = slug.replace("and", "and");
+        if (slug == null || slug.isEmpty()) {
+            return slug;
+        }
 
-        return capitalizeFirstLetterOfEachWord(slug.replace("-", " "));
+        String formattedString = slug.replace("-", " ");
+        formattedString = capitalizeFirstLetterOfEachWord(formattedString);
+
+        // Replace placeholders with actual commas
+        return formattedString.replace("~", ",");
     }
+
     private String capitalizeFirstLetterOfEachWord(String str) {
         if (str == null || str.isEmpty()) {
             return str;
         }
 
-        // Split the string into words, capitalize the first letter of each word, and join them back
-        String[] words = str.split(" ");
+        // Handle parentheses and commas by adding spaces around them
+        str = str.replace("(", " ( ").replace(")", " ) ").replace(",", " , ");
+        String[] words = str.split("\\s+");
         StringBuilder capitalizedStr = new StringBuilder();
 
         for (String word : words) {
-            if(word.equals("and")) {
-                capitalizedStr.append(word).append(" ");
-                continue;
-            }
-            if (!word.isEmpty()) {
-                capitalizedStr.append(word.substring(0, 1).toUpperCase())
-                        .append(word.substring(1).toLowerCase()) // Keep the rest of the word lowercase
-                        .append(" ");
+            if (word.equalsIgnoreCase("and")) {
+                capitalizedStr.append(word.toLowerCase()).append(" ");
+            } else if (word.equals("(") || word.equals(")") || word.equals(",")) {
+                // Add parentheses and commas without spaces
+                capitalizedStr.append(word);
+            } else if (!word.isEmpty()) {
+                capitalizedStr.append(Character.toUpperCase(word.charAt(0)))
+                        .append(word.substring(1).toLowerCase()).append(" ");
             }
         }
-        return capitalizedStr.toString().trim();
-    }
 
+        // Clean up any double spaces and ensure proper formatting of parentheses and commas
+        return capitalizedStr.toString().trim()
+                .replaceAll("\\s+", " ")
+                .replace(" ( ", "(")
+                .replace(" ) ", ")")
+                .replace("( ", "(")
+                .replace(" )", ")")
+                .replace(" , ", ", ");
+    }
 
     @GetMapping("/products-category/subCategoryName")
     public ResponseEntity<List<ProductResponse>> getProductsBySubCategoryName(
