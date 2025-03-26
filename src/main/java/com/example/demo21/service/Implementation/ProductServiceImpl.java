@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -269,8 +270,8 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponse> getAllProductCategory() {
         List<ProductCategoryDocument> productCategoryDocumentList = productCategoryRepository.findAll();
         
-        // Use stream and reuse cached maps
-        return productCategoryDocumentList.stream()
+        // Process in parallel for better performance
+        return productCategoryDocumentList.parallelStream()
                 .map(document -> {
                     ProductResponse proRes = new ProductResponse();
                     proRes.setId(document.getId());
@@ -293,6 +294,7 @@ public class ProductServiceImpl implements ProductService {
         try {
             String categoryId1 = "";
             String categoryId2 = "";
+            long startTime = System.nanoTime();
             
             if(categoryName.equals("Replacement Parts")) {
                 categoryId1 = getCategoryId(categoryName);
@@ -309,7 +311,7 @@ public class ProductServiceImpl implements ProductService {
             }
 
             List<ProductCategoryDocument> productDocuments = productCategoryRepository.findByCategoryIds(categoryId1, categoryId2);
-            
+            logTimeTaken("Product category loading", startTime);
             return productDocuments.stream()
                 .map(productDocument -> {
                     ProductResponse response = new ProductResponse();
@@ -420,6 +422,28 @@ public class ProductServiceImpl implements ProductService {
         return result;
     }
 
+    @PostConstruct
+    public void initializeCaches() {
+        try {
+            logger.info("Initializing caches on startup...");
+            // Populate caches in parallel
+            CompletableFuture<Void> categoryFuture = CompletableFuture.runAsync(() -> {
+                categoryIdToNameMap = categoryData(true);
+                categoryNameToIdMap = categoryData(false);
+            });
+            
+            CompletableFuture<Void> subCategoryFuture = CompletableFuture.runAsync(() -> {
+                subCategoryIdToNameMap = subCategoryData();
+            });
+            
+            // Wait for both operations to complete
+            CompletableFuture.allOf(categoryFuture, subCategoryFuture).join();
+            logger.info("Cache initialization completed");
+        } catch (Exception e) {
+            logger.error("Error during cache initialization", e);
+        }
+    }
+
     @Cacheable(value = "categoryData", key = "#value")
     public Map<String,String> categoryData(boolean value) {
         try {
@@ -511,5 +535,11 @@ public class ProductServiceImpl implements ProductService {
             logger.error("Error generating subcategory data map", e);
             return new HashMap<>(); // Return empty map instead of null to prevent NPE
         }
+    }
+
+    private void logTimeTaken(String operation, long startTime) {
+        long endTime = System.nanoTime();
+        logger.info("{} took {} ms", operation, 
+            TimeUnit.NANOSECONDS.toMillis(endTime - startTime));
     }
 }
