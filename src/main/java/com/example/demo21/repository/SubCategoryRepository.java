@@ -15,7 +15,7 @@ import java.util.List;
 public interface SubCategoryRepository extends MongoRepository<SubCategoryDocument,String> {
     @Query("{'categoryId': ?0}")
     List<SubCategoryDocument> findByCategoryId(String id);
-    @Query("{'name':0}")
+    @Query("{'name':?0}")
     SubCategoryDocument findByName(String name);
     @Query("{ 'name': { '$regex': ?0,'$options': 'i'} }")
     List<SubCategoryDocument> searchByName(String name);
